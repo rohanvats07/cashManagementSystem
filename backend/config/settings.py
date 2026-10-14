@@ -66,6 +66,8 @@ INSTALLED_APPS = [
     "common",
     "branches",
     "accounts",
+    "customers",
+    "loans",
 ]
 
 MIDDLEWARE = [

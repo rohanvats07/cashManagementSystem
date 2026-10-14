@@ -43,3 +43,26 @@ class IsAdminOrReadOnly(BasePermission):
             return True
 
         return getattr(user, "branch_id", None) == obj.pk
+
+class IsAdminOrBranchManagerOrReadOnly(BasePermission):
+    """
+    Permit writes to administrators and branch managers.
+    Other authenticated roles receive read-only access.
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+
+        if not user or not user.is_authenticated:
+            return False
+
+        if request.method in SAFE_METHODS:
+            return True
+
+        return bool(
+            user.is_superuser
+            or user.role in {
+                User.Role.ADMIN,
+                User.Role.BRANCH_MANAGER,
+            }
+        )
