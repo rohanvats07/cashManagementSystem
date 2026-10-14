@@ -13,6 +13,8 @@ def generate_receipt_number():
 def generate_submission_number():
     return f"CSUB-{uuid.uuid4().hex[:16].upper()}"
 
+def generate_deposit_number():
+    return f"DEP-{uuid.uuid4().hex[:16].upper()}"
 
 class CashCollection(models.Model):
     receipt_number = models.CharField(
@@ -158,3 +160,134 @@ class CashSubmissionItem(models.Model):
 
     def __str__(self):
         return f"{self.submission.submission_number} - {self.collection.receipt_number}"
+
+
+class BankDeposit(models.Model):
+    class Status(models.TextChoices):
+        PREPARED = "PREPARED", "Prepared"
+        DEPOSITED = "DEPOSITED", "Deposited"
+        RECONCILED = "RECONCILED", "Reconciled"
+        DISCREPANCY = "DISCREPANCY", "Discrepancy"
+
+    deposit_number = models.CharField(
+        max_length=30,
+        unique=True,
+        default=generate_deposit_number,
+        editable=False,
+    )
+    branch = models.ForeignKey(
+        "branches.Branch",
+        on_delete=models.PROTECT,
+        related_name="bank_deposits",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="created_bank_deposits",
+    )
+    deposit_date = models.DateField(default=timezone.localdate)
+    bank_name = models.CharField(max_length=150, blank=True)
+    bank_reference = models.CharField(
+        max_length=100,
+        unique=True,
+        null=True,
+        blank=True,
+    )
+    expected_amount = models.DecimalField(max_digits=14, decimal_places=2)
+    deposited_amount = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PREPARED,
+        db_index=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["branch", "status"]),
+            models.Index(fields=["deposit_date", "status"]),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(expected_amount__gt=0),
+                name="bank_deposit_expected_positive",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(deposited_amount__isnull=True)
+                    | models.Q(deposited_amount__gt=0)
+                ),
+                name="bank_deposit_actual_positive",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.deposit_number} - {self.expected_amount}"
+
+
+class BankDepositItem(models.Model):
+    deposit = models.ForeignKey(
+        BankDeposit,
+        on_delete=models.PROTECT,
+        related_name="items",
+    )
+    submission = models.OneToOneField(
+        CashSubmission,
+        on_delete=models.PROTECT,
+        related_name="bank_deposit_item",
+    )
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return f"{self.deposit.deposit_number} - {self.submission.submission_number}"
+
+
+class BankReconciliation(models.Model):
+    class Status(models.TextChoices):
+        MATCHED = "MATCHED", "Matched"
+        SHORT = "SHORT", "Short Credit"
+        EXCESS = "EXCESS", "Excess Credit"
+        DISCREPANCY = "DISCREPANCY", "Other Discrepancy"
+
+    deposit = models.OneToOneField(
+        BankDeposit,
+        on_delete=models.PROTECT,
+        related_name="reconciliation",
+    )
+    statement_reference = models.CharField(max_length=100, unique=True)
+    statement_date = models.DateField()
+    credited_amount = models.DecimalField(max_digits=14, decimal_places=2)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        db_index=True,
+    )
+    notes = models.CharField(max_length=500, blank=True)
+    reconciled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="bank_reconciliations",
+    )
+    reconciled_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-reconciled_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(credited_amount__gte=0),
+                name="bank_credit_nonnegative",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.deposit.deposit_number} - {self.status}"
