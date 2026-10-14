@@ -35,6 +35,7 @@ urlpatterns = [
     path("api/", include("branches.urls")),
     path("api/", include("customers.urls")),
     path("api/", include("loans.urls")),
+    path("api/", include("cash_collections.urls")),
 
     path(
         "api/auth/token/",
