@@ -1,477 +1,421 @@
 # Cash Management & Reconciliation System (CMRS)
 
-A full-stack application for managing cash collections, branch reconciliation, bank deposits, and settlement tracking for a lending or fintech company.
+A full-stack application for managing loan repayments collected in cash and tracking them through the lifecycle:
 
-## 1. Overview
+**Customer → Collection Agent → Branch → Bank Deposit → Company Account**
 
-CMRS tracks the lifecycle of customer loan repayments across collection agents, branches, and bank deposits.
+The application uses React/Vite, Django REST Framework, PostgreSQL, REST APIs, JWT authentication, and role-based access control (RBAC).
 
-**Business workflow**
+> **Status note:** The core workflow has been implemented and exercised locally. Complete the verification checklist below before describing every assignment requirement as finished. In particular, confirm dashboard/report filters, over-collection behavior, discrepancy reporting, and production security.
 
-`Customer → Collection Agent → Branch → Bank Deposit → Company Account`
+## Contents
 
-The system is designed to provide visibility into collections, cash discrepancies, outstanding balances, deposit records, and settlement status.
+- [Features](#features)
+- [Technology stack](#technology-stack)
+- [Architecture](#architecture)
+- [Roles](#roles)
+- [Workflow](#workflow)
+- [API overview](#api-overview)
+- [Database concepts](#database-concepts)
+- [Local setup](#local-setup)
+- [Environment variables](#environment-variables)
+- [API documentation](#api-documentation)
+- [Verification checklist](#verification-checklist)
+- [Deployment](#deployment)
+- [Test credentials](#test-credentials)
+- [Five-minute demo video](#five-minute-demo-video)
 
-## 2. Technology Stack
+## Features
+
+### Customer and loan management
+- Customer and loan APIs.
+- Loan repayment schedules and EMI calculations.
+- Repayment allocation to loan schedules.
+- Loan and repayment information exposed through REST APIs.
+
+### Cash collection
+- Collection agents can record cash repayments.
+- Partial repayments are supported.
+- Unique receipt/reference numbers are generated.
+- An idempotency key helps prevent duplicate collection creation when a request is retried.
+- Collection records track loan/customer, amount, collector, date, and notes.
+
+### Branch cash submissions
+- Agents submit collected cash to their branch.
+- Authorized branch managers/admins can accept or reject submissions and add review notes.
+- Access is scoped by role and branch in the backend.
+
+### Bank deposits and reconciliation
+- Create a bank deposit from eligible accepted cash submissions.
+- Record bank name, deposit date, bank reference, expected amount, and deposited amount.
+- Reconcile a deposit against a company-account/bank-statement credit.
+- Reconciliation outcomes include matched, short, excess, or discrepancy.
+- Database uniqueness constraints help prevent duplicate deposit numbers and bank references.
+
+### Authentication and payments
+- JWT authentication using Django REST Framework Simple JWT.
+- Role-based access control for admin, collection agent, branch manager, and auditor.
+- The backend is the source of truth for permissions, validation, and financial calculations.
+- **Digital payments are not implemented.** The UI shows “Digital Payments — Coming Soon”; no payment gateway or real-money processing is included.
+
+## Technology stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | React.js, Vite, JavaScript |
+| Frontend | React, JavaScript, Vite |
+| UI/data fetching | CSS, Axios, React Query, React Router |
 | Backend | Python, Django, Django REST Framework |
+| Authentication | JWT / Simple JWT |
 | Database | PostgreSQL |
-| Authentication | JWT using Simple JWT |
-| Authorization | Role-based access control |
-| API documentation | OpenAPI, Swagger UI |
-| Frontend routing | React Router |
-| API requests | Axios |
-| Server-state management | TanStack Query |
-| Testing | Django and DRF automated tests |
+| API | REST |
 | Version control | Git and GitHub |
 
-## 3. User Roles
-
-### Administrator
-- Create and manage branches.
-- Create application users and assign roles.
-- Access administrative functionality.
-
-### Collection Agent
-- Access the assigned branch's information.
-- View assigned customers and loans (planned).
-- Record customer repayments and generate receipts (planned).
-- Submit collected cash to the branch (planned).
-
-### Branch Manager
-- Access branch-level information.
-- Review agent cash submissions (planned).
-- Record discrepancies and approve or reject submissions (planned).
-- Manage bank deposits and reconciliation workflows (planned).
-
-### Auditor
-- Read branch information across the system.
-- Review authorized reports and audit history (planned).
-- Does not receive branch-management write permissions.
-
-Authorization is enforced by the backend API, not only by frontend visibility.
-
-## 4. Current Implementation Status
-
-### Implemented
-- Django REST Framework backend foundation.
-- PostgreSQL database configuration.
-- Custom Django user model.
-- Four application roles.
-- JWT access and refresh token endpoints.
-- Authenticated current-user endpoint.
-- Branch model and REST API.
-- Administrator-only branch writes.
-- Branch-scoped branch visibility.
-- Swagger API documentation.
-- Health endpoint with database connectivity check.
-- Initial automated authentication and permission tests.
-- React dashboard shell.
-- Digital Payments — Coming Soon UI.
-
-### Planned
-- Customer and loan management.
-- Loan repayment schedules and outstanding balance calculation.
-- Cash collection and partial repayment processing.
-- Unique repayment receipts and duplicate protection.
-- Agent cash submissions.
-- Branch reconciliation and discrepancy handling.
-- Bank deposit and settlement tracking.
-- Operational dashboards and reporting.
-- Audit history for financial transactions.
-- Payment gateway integration.
-
-**Payment gateway status:** Not implemented. The current interface is a placeholder and does not process payments or move money.
-
-## 5. Repository Structure
+## Architecture
 
 ```text
-cmrs/
-├── backend/
-│   ├── accounts/
-│   │   ├── migrations/
-│   │   ├── admin.py
-│   │   ├── apps.py
-│   │   ├── models.py
-│   │   ├── serializers.py
-│   │   ├── tests.py
-│   │   ├── urls.py
-│   │   └── views.py
-│   ├── branches/
-│   │   ├── migrations/
-│   │   ├── admin.py
-│   │   ├── apps.py
-│   │   ├── models.py
-│   │   ├── serializers.py
-│   │   ├── urls.py
-│   │   └── views.py
-│   ├── common/
-│   │   ├── migrations/
-│   │   ├── permissions.py
-│   │   ├── urls.py
-│   │   └── views.py
-│   ├── config/
-│   │   ├── asgi.py
-│   │   ├── settings.py
-│   │   ├── urls.py
-│   │   └── wsgi.py
-│   ├── .env
-│   ├── .env.example
-│   ├── manage.py
-│   └── requirements.txt
-├── frontend/
-│   ├── public/
-│   ├── src/
-│   │   ├── App.jsx
-│   │   ├── App.css
-│   │   ├── index.css
-│   │   └── main.jsx
-│   ├── .env.local
-│   ├── package.json
-│   └── package-lock.json
-├── .gitignore
-└── README.md
+React + Vite frontend
+        | HTTPS / JSON REST API + JWT
+        v
+Django REST Framework backend
+        | Django ORM
+        v
+PostgreSQL database
 ```
 
-Some generated files, such as `apps.py`, `asgi.py`, `wsgi.py`, and migration package files, are created automatically by Django or Vite.
+Business rules, authorization, validation, and financial calculations must be enforced on the backend, not trusted to browser-side code.
 
-### Backend file responsibilities
+## Roles
 
-| File | Responsibility |
-|---|---|
-| `accounts/models.py` | Custom user model and application roles |
-| `accounts/serializers.py` | User creation and profile serialization |
-| `accounts/views.py` | Current-user and administrator user-creation APIs |
-| `accounts/urls.py` | Authentication-related application routes |
-| `accounts/admin.py` | User administration in Django Admin |
-| `accounts/tests.py` | Authentication and role-permission tests |
-| `branches/models.py` | Branch database model |
-| `branches/serializers.py` | Branch request validation and response formatting |
-| `branches/views.py` | Branch CRUD endpoints and queryset scoping |
-| `branches/urls.py` | Branch API routing |
-| `branches/admin.py` | Branch administration in Django Admin |
-| `common/permissions.py` | Reusable application permission classes |
-| `common/views.py` | Health endpoint and database connectivity check |
-| `common/urls.py` | Common API routes |
-| `config/settings.py` | Installed apps, database, security and REST configuration |
-| `config/urls.py` | Root API routing, JWT endpoints and Swagger |
-| `manage.py` | Django management commands |
+- **ADMIN** — administrative access across branches; can perform company-account reconciliation.
+- **COLLECTION_AGENT** — records repayments and submits their own collected cash.
+- **BRANCH_MANAGER** — reviews submissions and manages deposits for their assigned branch.
+- **AUDITOR** — read-oriented visibility into permitted records.
 
-### Frontend file responsibilities
+Verify exact permissions using separate demo accounts. Do not use real customer or employee accounts for a public demo.
 
-| File | Responsibility |
-|---|---|
-| `src/App.jsx` | Main dashboard shell and initial API health check |
-| `src/App.css` | Dashboard layout, navigation, metric cards and payment placeholder styling |
-| `src/index.css` | Global styles and base typography |
-| `src/main.jsx` | React application entry point |
-| `package.json` | Frontend dependencies and scripts |
-| `.env.local` | Local frontend API base URL |
+## Workflow
 
-As the application grows, frontend pages, reusable components, API clients, route definitions, and authentication state will be separated into dedicated modules.
+1. A customer and loan exist in the system.
+2. A collection agent records a cash repayment against a loan.
+3. The system creates a collection receipt and allocates the repayment to schedules according to the implemented rules.
+4. The agent submits eligible collections to the branch.
+5. An authorized branch manager/admin accepts or rejects the submission.
+6. An authorized branch user creates a bank deposit from eligible accepted submissions.
+7. The deposit is marked as deposited with bank, reference, amount, and date details.
+8. An admin reconciles the deposit against the company-account/bank-statement credit.
+9. The system records a matched, short, excess, or discrepancy result.
 
-## 6. Prerequisites
+## API overview
 
-Install the following:
+Local backend base URL: `http://localhost:8000`; API prefix: `/api`.
 
-- Python 3.10 or a compatible supported Python version.
-- Node.js and npm.
-- PostgreSQL.
-- Git.
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `POST` | `/api/auth/token/` | Obtain JWT access/refresh tokens |
+| `POST` | `/api/auth/token/refresh/` | Refresh an access token |
+| `GET` | `/api/health/` | Health check |
+| `GET` | `/api/me/` | Current authenticated user's profile and role |
+| `GET`, `POST` | `/api/branches/` | List/create branches, subject to permissions |
+| `GET`, `POST` | `/api/users/` | List/create users, subject to permissions |
+| `GET`, `POST` | `/api/customers/` | List/create customers |
+| `GET`, `POST` | `/api/loans/` | List/create loans |
+| `GET`, `POST` | `/api/collections/` | List or record collections |
+| `GET` | `/api/collections/{id}/` | Retrieve a collection |
+| `GET`, `POST` | `/api/cash-submissions/` | List or create cash submissions |
+| `GET` | `/api/cash-submissions/{id}/` | Retrieve a submission |
+| `POST` | `/api/cash-submissions/{id}/review/` | Accept/reject a submission |
+| `GET`, `POST` | `/api/bank-deposits/` | List/create bank deposits |
+| `GET` | `/api/bank-deposits/{id}/` | Retrieve a deposit |
+| `POST` | `/api/bank-deposits/{id}/mark-deposited/` | Record bank deposit details |
+| `POST` | `/api/bank-deposits/{id}/reconcile/` | Reconcile a deposit against a statement credit |
 
-Check installations:
+Confirm exact request/response schemas in the running API docs; permissions and validation apply to each endpoint.
+
+### Frontend request payloads
+
+These are the payloads expected by the frontend integration. Verify them against the current backend serializers before deployment:
+
+- Create collection: `loan`, `amount`, `idempotency_key`, `notes`
+- Create cash submission: `collection_ids`
+- Review submission: `decision` (`accept` or `reject`), `review_notes`
+- Create bank deposit: `submission_ids`
+- Mark deposited: `bank_name`, `bank_reference`, `deposited_amount`, `deposit_date`
+- Reconcile deposit: `statement_reference`, `statement_date`, `credited_amount`, `notes`
+
+## Database concepts
+
+Main domain entities include:
+
+- **User** — identity, role, and optional branch assignment.
+- **Branch** — branch identity and code.
+- **Customer** — customer details and assignment/access relationships.
+- **Loan** — loan terms and current loan information.
+- **Repayment schedule** — due installments and principal/interest components.
+- **CashCollection** — receipt, collector, loan/customer, amount, date, and idempotency key.
+- **CollectionAllocation** — allocation of a collection to repayment schedules.
+- **CashSubmission** — agent-to-branch submission and review status.
+- **CashSubmissionItem** — collections included in a submission.
+- **BankDeposit** — deposit bank details, expected/deposited amounts, and status.
+- **BankDepositItem** — submissions included in a deposit.
+- **BankReconciliation** — statement credit, outcome, notes, and reviewer.
+
+Monetary values must use `DecimalField`/PostgreSQL numeric types and decimal arithmetic. Do not use binary floating-point arithmetic for financial calculations.
+
+## Local setup
+
+### Prerequisites
+
+Install Python (compatible with backend dependencies), Node.js/npm, PostgreSQL, and Git.
+
+### 1. Clone the repository
 
 ```powershell
-python --version
-node --version
-npm --version
-psql --version
+git clone <YOUR_GITHUB_REPOSITORY_URL>
+cd cashManagementSystem
 ```
 
-The commands in this guide assume Windows PowerShell.
+Replace the placeholder with your actual repository URL.
 
-## 7. Backend Setup
+Expected top-level layout:
 
-### Step 1: Enter the backend directory
+```text
+cashManagementSystem/
+├── backend/
+│   ├── manage.py
+│   ├── config/
+│   ├── common/
+│   ├── accounts/
+│   ├── branches/
+│   ├── customers/
+│   ├── loans/
+│   └── cash_collections/
+└── frontend/
+    ├── package.json
+    ├── index.html
+    └── src/
+```
+
+### 2. Create PostgreSQL database
+
+The local development database has been named `cmrs_db`, with an application user `cmrs_app`. Example SQL (run as a PostgreSQL administrator and replace the password):
+
+```sql
+CREATE DATABASE cmrs_db;
+CREATE USER cmrs_app WITH PASSWORD 'REPLACE_WITH_A_LOCAL_PASSWORD';
+GRANT ALL PRIVILEGES ON DATABASE cmrs_db TO cmrs_app;
+```
+
+Depending on PostgreSQL version and ownership/schema permissions, additional privileges on the `public` schema may be required. Never commit the real password.
+
+### 3. Set up backend
+
+In PowerShell:
 
 ```powershell
 cd backend
-```
-
-### Step 2: Create the virtual environment if necessary
-
-```powershell
-py -m venv .venv
-```
-
-### Step 3: Activate the environment
-
-```powershell
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 ```
 
-Alternatively, run the Python executable directly using `.venv\Scripts\python.exe`.
-
-### Step 4: Install dependencies
-
-Once the dependency file is available:
+Install dependencies from the repository's dependency file, if present:
 
 ```powershell
-python -m pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
-### Step 5: Configure environment variables
-
-Copy `.env.example` to `.env` and replace the development placeholders with local values.
-
-Required variables:
+Create `backend/.env` using the variable names actually read by `backend/config/settings.py`. At minimum, production/local configuration commonly includes a Django secret, debug flag, allowed hosts, and PostgreSQL connection settings. Example only:
 
 ```dotenv
-DJANGO_SECRET_KEY=replace-with-a-random-secret
-DJANGO_DEBUG=True
-DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
-DB_NAME=cmrs_db
-DB_USER=cmrs_app
-DB_PASSWORD=replace-with-your-local-database-password
-DB_HOST=127.0.0.1
-DB_PORT=5432
-CORS_ALLOWED_ORIGINS=http://localhost:5173
+SECRET_KEY=replace_with_a_long_random_secret
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
 ```
 
-Never commit `.env` or expose production credentials.
+Do not blindly add environment variable names that the settings module does not read. If settings use individual database variables, configure those; if they use `DATABASE_URL`, configure that instead. Keep `.env` out of Git.
 
-### Step 6: Apply migrations
+### 4. Apply migrations and create users
+
+From `backend`:
 
 ```powershell
 python manage.py check
-python manage.py makemigrations
 python manage.py migrate
-```
-
-Commit generated migration files to Git.
-
-### Step 7: Create an administrator
-
-```powershell
 python manage.py createsuperuser
 ```
 
-Set the account's CMRS role to `ADMIN` if it is not already assigned.
+If tests are included, run:
 
-### Step 8: Start Django
+```powershell
+python manage.py test
+```
+
+Use the user-management API or Django admin to create separate demo users with appropriate roles and branch assignments.
+
+### 5. Run backend
+
+From `backend`:
 
 ```powershell
 python manage.py runserver 8000
 ```
 
-The backend is available at `http://localhost:8000`.
+Backend URL: `http://localhost:8000`.
 
-## 8. Frontend Setup
+### 6. Set up and run frontend
 
-Open a separate terminal.
+Open another PowerShell window:
 
 ```powershell
 cd frontend
 npm install
 ```
 
-Configure `frontend/.env.local`:
+Create `frontend/.env`:
 
 ```dotenv
 VITE_API_BASE_URL=http://localhost:8000/api
 ```
 
-Start the frontend:
+Start Vite:
 
 ```powershell
 npm run dev
 ```
 
-Open the local URL printed by Vite, normally `http://localhost:5173`.
+Open the URL printed by Vite, normally `http://localhost:5173`.
 
-The frontend needs the Django backend running to show a successful API health indicator.
+Before deploying, run a production build and fix all errors:
 
-## 9. API Reference
+```powershell
+npm run build
+```
 
-Base URL: `http://localhost:8000/api`
+A successful local development session does not guarantee a successful production build.
 
-| Method | Endpoint | Purpose |
+## Environment variables
+
+### Frontend
+
+| Variable | Purpose | Local example |
 |---|---|---|
-| `GET` | `/health/` | Check API and database health |
-| `POST` | `/auth/token/` | Obtain JWT tokens |
-| `POST` | `/auth/token/refresh/` | Refresh an access token |
-| `GET` | `/auth/me/` | Retrieve authenticated user profile |
-| `POST` | `/auth/users/` | Create a user as an administrator |
-| `GET` | `/branches/` | List authorized branches |
-| `POST` | `/branches/` | Create a branch as an administrator |
-| `GET` | `/branches/{id}/` | Retrieve an authorized branch |
-| `PUT` | `/branches/{id}/` | Replace a branch as an administrator |
-| `PATCH` | `/branches/{id}/` | Update a branch as an administrator |
-| `DELETE` | `/branches/{id}/` | Delete an eligible branch as an administrator |
-| `GET` | `/schema/` | Retrieve OpenAPI schema |
-| `GET` | `/docs/` | Open Swagger UI |
+| `VITE_API_BASE_URL` | Backend API base URL | `http://localhost:8000/api` |
 
-Except for explicitly public endpoints, business APIs require authentication.
+Any `VITE_` variable is bundled into client-side code. Never put secrets, database credentials, or private API keys in frontend environment variables.
 
-### JWT authentication example
+### Backend
 
-Request:
+Configure variables that the actual `backend/config/settings.py` reads. Common production configuration includes:
 
-```http
-POST /api/auth/token/
-Content-Type: application/json
-```
+| Variable | Purpose |
+|---|---|
+| `SECRET_KEY` | Private Django signing key |
+| `DEBUG` | Must be `False` in production |
+| `ALLOWED_HOSTS` | Permitted backend hostnames |
+| `DATABASE_URL` or database-specific variables | PostgreSQL connection |
+| `CORS_ALLOWED_ORIGINS` | Trusted frontend origins, if configured in settings |
 
-```json
-{
-    "username": "your_username",
-    "password": "your_password"
-}
-```
+This list is a deployment checklist, not a guarantee that every variable is currently wired into the project. Confirm settings before deployment. Keep secrets out of GitHub and rotate any secret accidentally committed.
 
-Use the returned access token for authenticated requests:
+## API documentation
 
-```http
-Authorization: Bearer YOUR_ACCESS_TOKEN
-```
-
-### Branch creation example
-
-```http
-POST /api/branches/
-Authorization: Bearer YOUR_ACCESS_TOKEN
-Content-Type: application/json
-```
-
-```json
-{
-    "code": "BR001",
-    "name": "Gurugram Branch",
-    "address": "Example branch address",
-    "city": "Gurugram",
-    "state": "Haryana",
-    "pincode": "122001",
-    "is_active": true
-}
-```
-
-### Interactive API documentation
+When the backend is running:
 
 - Swagger UI: `http://localhost:8000/api/docs/`
 - OpenAPI schema: `http://localhost:8000/api/schema/`
 
-## 10. Database Design
+Use these pages to inspect request schemas, responses, and operations. Frontend payloads must match backend serializers.
 
-The initial database contains two application entities.
+## Verification checklist
 
-### Branch
+### Authentication and permissions
+- [ ] Unauthenticated requests cannot access protected data.
+- [ ] Admin, collection agent, branch manager, and auditor permissions work as intended.
+- [ ] Agents cannot access or submit another agent's collections.
+- [ ] Branch managers cannot access or change another branch's restricted data.
+- [ ] Auditors cannot perform write actions.
+- [ ] Invalid/expired tokens are handled safely.
 
-- Primary key: `id`
-- Unique identifier: `code`
-- Branch name, address, city, state and pincode.
-- Active/inactive status.
-- Creation and update timestamps.
+### Collections and loan accounting
+- [ ] A normal repayment creates a unique receipt.
+- [ ] A partial repayment updates schedules and outstanding values correctly.
+- [ ] Repeating a request with the same idempotency key does not create a duplicate.
+- [ ] Over-collection is rejected or handled under an explicitly documented business rule.
+- [ ] Financial values use decimal arithmetic.
+- [ ] Repayment history and outstanding loan amount are presented accurately.
 
-### User
+### Branch submissions
+- [ ] Agents can submit only eligible collections assigned to them.
+- [ ] Branch managers can review submissions only for their branch.
+- [ ] Rejected submissions cannot enter a bank deposit.
+- [ ] Expected-versus-actual differences can be explained and recorded.
+- [ ] Reviewed/reconciled transactions cannot be modified by unauthorized API calls.
 
-Extends Django's user model and includes:
+### Bank deposits and reconciliation
+- [ ] Deposits contain only eligible accepted submissions.
+- [ ] Duplicate bank references are rejected with a clear API error.
+- [ ] Matched, short, excess, and discrepancy scenarios work.
+- [ ] A deposit cannot be reconciled more than once unless explicitly allowed by the business rules.
+- [ ] Failed/delayed settlement is represented or documented as a limitation.
 
-- Username and password hash.
-- Email and contact information.
-- Application role.
-- Optional foreign key to a branch.
-- Active status and Django administrative permissions.
-- Creation and update timestamps.
+### Dashboard and release
+- [ ] Expected collections, total collected, cash held by agents, branch cash received, bank deposits, settled amount, outstanding amount, and discrepancies are available or documented as not implemented.
+- [ ] Date, branch, agent, and status filters work where required.
+- [ ] `python manage.py check` passes and backend tests pass.
+- [ ] `npm run build` passes.
+- [ ] Production `DEBUG=False`; secrets are not committed.
+- [ ] CORS permits only the deployed frontend origin.
+- [ ] Database migrations run successfully on the hosted database.
+- [ ] Demo credentials use synthetic data and are safe to share.
+- [ ] Hosted URL and the required explanation video are ready.
 
-### Relationships
+Do not mark a feature complete just because a model or endpoint exists. Verify its end-to-end UI, API behavior, permissions, and edge cases.
 
-```text
-Branch 1 ─────────── N User
-```
+## Deployment
 
-A branch can have multiple users. A user can be assigned to one branch or remain unassigned, depending on their role.
+GitHub stores the source code; it does not host the complete Django + PostgreSQL application by itself.
 
-Loan, repayment, reconciliation, deposit and settlement entities will be introduced in subsequent milestones.
+Recommended deployment split:
 
-## 11. Financial Data and Business Rules
+1. **Frontend:** Vercel (or Netlify) for the React/Vite static frontend.
+2. **Backend:** Render web service for Django REST Framework.
+3. **Database:** Managed PostgreSQL, for example Render PostgreSQL.
 
-The financial workflow will use decimal/numeric database types rather than floating-point arithmetic.
+GitHub Pages can host static frontend files, but it cannot run the Django backend or supply the PostgreSQL database. For this project, use GitHub as the source repository and deploy the frontend/backend/database to hosting services.
 
-Planned safeguards include:
+Official guides:
+- Render Django: https://render.com/docs/deploy-django
+- Render PostgreSQL: https://render.com/docs/postgresql
+- Vercel + Vite: https://vercel.com/docs/frameworks/frontend/vite
 
-- Unique repayment reference numbers.
-- Database transactions for repayment processing.
-- Duplicate collection prevention.
-- Separate expected, collected, branch-received, deposited and settled amounts.
-- Expected-versus-actual reconciliation.
-- Discrepancy records and explicit approval decisions.
-- Protection against unauthorized changes to reconciled transactions.
-- Audit history for financially significant actions.
+Before production deployment, configure the production API URL, `DEBUG=False`, `ALLOWED_HOSTS`, CORS/CSRF settings as applicable, HTTPS, secret environment variables, database migrations, and a production WSGI server. Confirm current plan pricing, idle/sleep behavior, data retention, and backups before relying on a host.
 
-These financial workflows are not yet implemented in the initial foundation.
+## Known scope and follow-up checks
 
-## 12. Testing
+This is an assignment/demo system, not a production financial platform. Explicitly verify the following against the final code and UI:
 
-Run backend checks:
+1. Dashboard metrics and date/branch/agent/status filters required by the assignment.
+2. Explicit over-collection handling and documented business rule.
+3. Cash discrepancy amount/notes and expected-versus-actual review workflow.
+4. Repayment history and outstanding-balance presentation.
+5. Failed/delayed settlement tracking.
+6. Tests preventing unauthorized changes to reviewed/reconciled transactions.
+7. Production security, automated tests, monitoring, and deployment.
+8. Test credentials for every role.
 
-```powershell
-python manage.py check
-python manage.py test
-```
+## Test credentials
 
-Build the frontend:
+Create dedicated demo users and replace the placeholders below before submission. Do not publish real credentials or a production administrator account.
 
-```powershell
-cd frontend
-npm run build
-```
+| Role | Username | Password |
+|---|---|---|
+| Admin | `REPLACE_WITH_DEMO_ADMIN_USERNAME` | `REPLACE_WITH_DEMO_ADMIN_PASSWORD` |
+| Collection agent | `REPLACE_WITH_AGENT_USERNAME` | `REPLACE_WITH_AGENT_PASSWORD` |
+| Branch manager | `REPLACE_WITH_MANAGER_USERNAME` | `REPLACE_WITH_MANAGER_PASSWORD` |
+| Auditor | `REPLACE_WITH_AUDITOR_USERNAME` | `REPLACE_WITH_AUDITOR_PASSWORD` |
 
-The automated tests cover authentication, branch visibility and role-based permissions. More tests will be added as the collection and reconciliation workflows are implemented.
-
-## 13. Security and Configuration
-
-- Keep secrets in environment variables.
-- Never commit real passwords, API keys or database credentials.
-- Use Django's password hashing and validation.
-- Restrict API access with authentication and explicit permissions.
-- Avoid exposing privileged user fields through public serializers.
-- Use database constraints and transactions for financial operations.
-- Disable Django debug mode and configure secure deployment settings in production.
-- Use HTTPS and an appropriate token lifecycle in production.
-- Apply database backups, monitoring and audit logging before production use.
-
-## 14. Payment Gateway
-
-Payment integration is deliberately deferred.
-
-The frontend currently displays a Digital Payments — Coming Soon section. UPI processing, payment-provider callbacks, payment transaction storage and real-money processing are not implemented.
-
-A future payment integration should support verified provider callbacks, idempotency, transaction references, settlement reconciliation and secure secret management.
-
-## 15. Development Roadmap
-
-1. Project foundation and PostgreSQL connectivity.
-2. Authentication, roles and branch management.
-3. Customer, loan and repayment-schedule management.
-4. Cash collections, partial repayments and agent submissions.
-5. Branch reconciliation and discrepancy handling.
-6. Bank deposits and settlement tracking.
-7. Role-specific dashboards and reports.
-8. Automated testing and audit history.
-9. Deployment, documentation and final demonstration.
-
-## 16. Contributing
-
-1. Create a feature branch.
-2. Implement a focused change.
-3. Add or update tests.
-4. Run Django checks, backend tests and the frontend build.
-5. Commit migrations and source files.
-6. Open a pull request for review.
+Use synthetic customer and loan data only.
 
 ## License
 
-Specify the project's license before distributing the software.
+Add a license if you intend to distribute or reuse this project publicly. Otherwise, follow the assignment and repository owner's terms.
