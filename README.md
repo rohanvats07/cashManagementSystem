@@ -6,8 +6,6 @@ A full-stack application for managing loan repayments collected in cash and trac
 
 The application uses React/Vite, Django REST Framework, PostgreSQL, REST APIs, JWT authentication, and role-based access control (RBAC).
 
-> **Status note:** The core workflow has been implemented and exercised locally. Complete the verification checklist below before describing every assignment requirement as finished. In particular, confirm dashboard/report filters, over-collection behavior, discrepancy reporting, and production security.
-
 ## Contents
 
 - [Features](#features)
@@ -20,10 +18,7 @@ The application uses React/Vite, Django REST Framework, PostgreSQL, REST APIs, J
 - [Local setup](#local-setup)
 - [Environment variables](#environment-variables)
 - [API documentation](#api-documentation)
-- [Verification checklist](#verification-checklist)
-- [Deployment](#deployment)
-- [Test credentials](#test-credentials)
-- [Five-minute demo video](#five-minute-demo-video)
+- [Demo Video](#Demo-Video)
 
 ## Features
 
@@ -326,96 +321,5 @@ When the backend is running:
 
 Use these pages to inspect request schemas, responses, and operations. Frontend payloads must match backend serializers.
 
-## Verification checklist
-
-### Authentication and permissions
-- [ ] Unauthenticated requests cannot access protected data.
-- [ ] Admin, collection agent, branch manager, and auditor permissions work as intended.
-- [ ] Agents cannot access or submit another agent's collections.
-- [ ] Branch managers cannot access or change another branch's restricted data.
-- [ ] Auditors cannot perform write actions.
-- [ ] Invalid/expired tokens are handled safely.
-
-### Collections and loan accounting
-- [ ] A normal repayment creates a unique receipt.
-- [ ] A partial repayment updates schedules and outstanding values correctly.
-- [ ] Repeating a request with the same idempotency key does not create a duplicate.
-- [ ] Over-collection is rejected or handled under an explicitly documented business rule.
-- [ ] Financial values use decimal arithmetic.
-- [ ] Repayment history and outstanding loan amount are presented accurately.
-
-### Branch submissions
-- [ ] Agents can submit only eligible collections assigned to them.
-- [ ] Branch managers can review submissions only for their branch.
-- [ ] Rejected submissions cannot enter a bank deposit.
-- [ ] Expected-versus-actual differences can be explained and recorded.
-- [ ] Reviewed/reconciled transactions cannot be modified by unauthorized API calls.
-
-### Bank deposits and reconciliation
-- [ ] Deposits contain only eligible accepted submissions.
-- [ ] Duplicate bank references are rejected with a clear API error.
-- [ ] Matched, short, excess, and discrepancy scenarios work.
-- [ ] A deposit cannot be reconciled more than once unless explicitly allowed by the business rules.
-- [ ] Failed/delayed settlement is represented or documented as a limitation.
-
-### Dashboard and release
-- [ ] Expected collections, total collected, cash held by agents, branch cash received, bank deposits, settled amount, outstanding amount, and discrepancies are available or documented as not implemented.
-- [ ] Date, branch, agent, and status filters work where required.
-- [ ] `python manage.py check` passes and backend tests pass.
-- [ ] `npm run build` passes.
-- [ ] Production `DEBUG=False`; secrets are not committed.
-- [ ] CORS permits only the deployed frontend origin.
-- [ ] Database migrations run successfully on the hosted database.
-- [ ] Demo credentials use synthetic data and are safe to share.
-- [ ] Hosted URL and the required explanation video are ready.
-
-Do not mark a feature complete just because a model or endpoint exists. Verify its end-to-end UI, API behavior, permissions, and edge cases.
-
-## Deployment
-
-GitHub stores the source code; it does not host the complete Django + PostgreSQL application by itself.
-
-Recommended deployment split:
-
-1. **Frontend:** Vercel (or Netlify) for the React/Vite static frontend.
-2. **Backend:** Render web service for Django REST Framework.
-3. **Database:** Managed PostgreSQL, for example Render PostgreSQL.
-
-GitHub Pages can host static frontend files, but it cannot run the Django backend or supply the PostgreSQL database. For this project, use GitHub as the source repository and deploy the frontend/backend/database to hosting services.
-
-Official guides:
-- Render Django: https://render.com/docs/deploy-django
-- Render PostgreSQL: https://render.com/docs/postgresql
-- Vercel + Vite: https://vercel.com/docs/frameworks/frontend/vite
-
-Before production deployment, configure the production API URL, `DEBUG=False`, `ALLOWED_HOSTS`, CORS/CSRF settings as applicable, HTTPS, secret environment variables, database migrations, and a production WSGI server. Confirm current plan pricing, idle/sleep behavior, data retention, and backups before relying on a host.
-
-## Known scope and follow-up checks
-
-This is an assignment/demo system, not a production financial platform. Explicitly verify the following against the final code and UI:
-
-1. Dashboard metrics and date/branch/agent/status filters required by the assignment.
-2. Explicit over-collection handling and documented business rule.
-3. Cash discrepancy amount/notes and expected-versus-actual review workflow.
-4. Repayment history and outstanding-balance presentation.
-5. Failed/delayed settlement tracking.
-6. Tests preventing unauthorized changes to reviewed/reconciled transactions.
-7. Production security, automated tests, monitoring, and deployment.
-8. Test credentials for every role.
-
-## Test credentials
-
-Create dedicated demo users and replace the placeholders below before submission. Do not publish real credentials or a production administrator account.
-
-| Role | Username | Password |
-|---|---|---|
-| Admin | `REPLACE_WITH_DEMO_ADMIN_USERNAME` | `REPLACE_WITH_DEMO_ADMIN_PASSWORD` |
-| Collection agent | `REPLACE_WITH_AGENT_USERNAME` | `REPLACE_WITH_AGENT_PASSWORD` |
-| Branch manager | `REPLACE_WITH_MANAGER_USERNAME` | `REPLACE_WITH_MANAGER_PASSWORD` |
-| Auditor | `REPLACE_WITH_AUDITOR_USERNAME` | `REPLACE_WITH_AUDITOR_PASSWORD` |
-
-Use synthetic customer and loan data only.
-
-## License
-
-Add a license if you intend to distribute or reuse this project publicly. Otherwise, follow the assignment and repository owner's terms.
+## Demo Video
+[Watch the Demo Video](https://drive.google.com/drive/folders/198jXBCW2KoF9bVgIOXzQysGbJpnEmOc-?usp=sharing)
