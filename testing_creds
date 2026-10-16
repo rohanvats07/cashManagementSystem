@@ -1,7 +1,7 @@
 ## Test credentials
 
-| Role | Username | Password |
-|---|---|---|
-| Admin | `cmrs_admin` | `admin@12345` |
-| Collection agent 1 | `agent001` | `agent_login@001` |
-| Collection agent 2 | `agent002` | `agent_login@002` |
+|        Role          |   Username   |     Password      |
+|----------------------|--------------|-------------------|
+| Admin                | cmrs_admin   | admin@12345       |
+| Collection agent 1   | agent001     | agent_login@001   |
+| Collection agent 2   | agent002     | agent_login@002   |
