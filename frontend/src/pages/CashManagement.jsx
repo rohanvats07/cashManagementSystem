@@ -440,6 +440,7 @@ export default function CashManagement() {
                         emptyDetail="Agent cash submissions will appear here."
                         columns={[
                             { key: "submission_number", label: "Submission", render: (row) => <span className="cm-primary-cell">{valueOf(row, "submission_number", "id")}</span> },
+                            { key: "submission_id", label: "Submission ID", render: (row) => <span className="cm-primary-cell">{valueOf(row, "id")}</span> },
                             { key: "branch", label: "Branch", render: (row) => valueOf(row, "branch_name", "branch_code", "branch") },
                             { key: "submitted_by", label: "Submitted by", render: (row) => valueOf(row, "submitted_by_name", "submitted_by_username", "submitted_by") },
                             { key: "amount", label: "Expected amount", render: (row) => <strong>{money(row.amount)}</strong> },
