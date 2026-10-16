@@ -485,6 +485,7 @@ export default function CashManagement() {
                         emptyDetail="Prepared deposits will appear here."
                         columns={[
                             { key: "deposit_number", label: "Deposit", render: (row) => <span className="cm-primary-cell">{valueOf(row, "deposit_number", "id")}</span> },
+                            { key: "deposit_id", label: "Deposit Id", render: (row) => <span className="cm-primary-cell">{valueOf(row, "id")}</span> },
                             { key: "bank_name", label: "Bank", render: (row) => valueOf(row, "bank_name", "bank_reference") },
                             { key: "expected_amount", label: "Expected", render: (row) => <strong>{money(valueOf(row, "expected_amount", "amount"))}</strong> },
                             { key: "deposited_amount", label: "Deposited", render: (row) => money(valueOf(row, "deposited_amount", "expected_amount")) },
