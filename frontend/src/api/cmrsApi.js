@@ -55,10 +55,23 @@ export async function createCashSubmission(collectionIds) {
 }
 
 export async function reviewCashSubmission(id, decision, reviewNotes = "") {
-    const { data } = await api.post(`/cash-submissions/${id}/review/`, {
-        decision,
-        review_notes: reviewNotes,
-    });
+    const normalizedDecision = {
+        accept: "ACCEPTED",
+        reject: "REJECTED",
+    }[decision];
+
+    if (!normalizedDecision) {
+        throw new Error(`Invalid review decision: ${decision}`);
+    }
+
+    const { data } = await api.post(
+        `/cash-submissions/${id}/review/`,
+        {
+            decision: normalizedDecision,
+            review_notes: reviewNotes,
+        }
+    );
+
     return data;
 }
 
