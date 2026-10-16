@@ -1,9 +1,19 @@
 import api from "./client";
 
 function listFromResponse(data) {
+    // Support standard DRF lists, pagination, and common API response wrappers.
     if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.results)) return data.results;
-    if (Array.isArray(data?.data)) return data.data;
+    if (!data || typeof data !== "object") return [];
+
+    for (const key of ["results", "data", "items", "loans", "records"]) {
+        const value = data[key];
+        if (Array.isArray(value)) return value;
+        if (value && typeof value === "object") {
+            const nested = listFromResponse(value);
+            if (nested.length) return nested;
+        }
+    }
+
     return [];
 }
 
