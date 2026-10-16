@@ -98,7 +98,7 @@ def _record_cash_collection(
         )
 
     loan = (
-        Loan.objects.select_for_update()
+        Loan.objects.select_for_update(of=("self",))
         .select_related("customer", "customer__branch", "customer__assigned_agent")
         .filter(pk=loan_id)
         .first()

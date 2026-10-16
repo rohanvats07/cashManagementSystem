@@ -28,7 +28,17 @@ const valueOf = (item, ...keys) => {
     return "—";
 };
 
-const itemId = (item) => String(item?.id ?? item?.pk ?? "");
+const itemId = (item) => String(item?.id ?? item?.pk ?? item?.loan_id ?? "");
+const loanLabel = (loan) => {
+    const customer = loan?.customer;
+    const customerLabel = typeof customer === "object" && customer !== null
+        ? [customer.full_name, customer.name, customer.first_name, customer.last_name].filter(Boolean).join(" ")
+        : (loan?.customer_name || customer || "");
+    const number = loan?.loan_number || loan?.account_number || loan?.loan_account_number || `Loan ${itemId(loan)}`;
+    const amount = loan?.principal_amount ?? loan?.loan_amount ?? loan?.amount;
+    const parts = [number, customerLabel, amount !== undefined && amount !== null ? `₹${amount}` : ""].filter(Boolean);
+    return parts.join(" · ");
+};
 const itemAmount = (item) => Number(valueOf(item, "amount", "expected_amount", "deposited_amount", "credited_amount") || 0);
 const displayDate = (value) => {
     if (!value || value === "—") return "—";
@@ -358,11 +368,31 @@ export default function CashManagement() {
                     <form className="cm-form-card" onSubmit={handleCreateCollection}>
                         <div className="cm-form-heading"><div><h3>Record a collection</h3><p>Use the loan linked to the customer repayment.</p></div><span className="cm-form-step">NEW ENTRY</span></div>
                         <div className="cm-form-grid">
-                            <Field label="Loan *">
-                                <select value={collectionForm.loan} onChange={(event) => setCollectionForm((prev) => ({ ...prev, loan: event.target.value }))} required>
-                                    <option value="">Select a loan</option>
-                                    {allLoans.map((loan) => <option value={itemId(loan)} key={itemId(loan)}>#{itemId(loan)} · {valueOf(loan, "loan_number", "account_number", "customer_name", "customer")}</option>)}
+                            <Field
+                                label="Loan *"
+                                hint={loans.isLoading
+                                    ? "Loading loans assigned to your account…"
+                                    : loans.isError
+                                        ? "Could not load loans. Use Retry below and check the backend if this continues."
+                                        : allLoans.length === 0
+                                            ? "No loans are available to this agent. Create a loan and ensure its customer/assignment is linked to this agent."
+                                            : `${allLoans.length} loan${allLoans.length === 1 ? "" : "s"} available. Select the loan receiving this repayment.`}
+                            >
+                                <select
+                                    value={collectionForm.loan}
+                                    onChange={(event) => setCollectionForm((prev) => ({ ...prev, loan: event.target.value }))}
+                                    required
+                                    disabled={loans.isLoading || loans.isError || allLoans.length === 0}
+                                >
+                                    <option value="">
+                                        {loans.isLoading ? "Loading loans…" : loans.isError ? "Loans could not be loaded" : allLoans.length === 0 ? "No eligible loans found" : "Select a loan"}
+                                    </option>
+                                    {allLoans.map((loan, index) => {
+                                        const id = itemId(loan);
+                                        return id ? <option value={id} key={id}>{loanLabel(loan)}</option> : null;
+                                    })}
                                 </select>
+                                {loans.isError && <button type="button" className="cm-button subtle" onClick={() => loans.refetch()} style={{ marginTop: 8 }}>Retry loading loans</button>}
                             </Field>
                             <Field label="Collection amount (₹) *">
                                 <input type="number" min="0.01" step="0.01" inputMode="decimal" placeholder="e.g. 2500.00" value={collectionForm.amount} onChange={(event) => setCollectionForm((prev) => ({ ...prev, amount: event.target.value }))} required />
@@ -383,6 +413,7 @@ export default function CashManagement() {
                         emptyDetail="Collection records will appear here once they are created."
                         columns={[
                             { key: "receipt_number", label: "Receipt", render: (row) => <span className="cm-primary-cell">{valueOf(row, "receipt_number", "id")}</span> },
+                            { key: "collection_id", label: "collection id", render: (row) => <span className="cm-primary-cell">{valueOf(row, "id")}</span> },
                             { key: "customer", label: "Customer / loan", render: (row) => <div className="cm-cell-stack"><strong>{valueOf(row, "customer_name", "customer", "loan_number", "loan")}</strong><span>Loan {valueOf(row, "loan_number", "loan_id", "loan")}</span></div> },
                             { key: "amount", label: "Amount", render: (row) => <strong>{money(row.amount)}</strong> },
                             { key: "collection_date", label: "Date", render: (row) => displayDate(valueOf(row, "collection_date", "created_at")) },
@@ -409,6 +440,7 @@ export default function CashManagement() {
                         emptyDetail="Agent cash submissions will appear here."
                         columns={[
                             { key: "submission_number", label: "Submission", render: (row) => <span className="cm-primary-cell">{valueOf(row, "submission_number", "id")}</span> },
+                            { key: "submission_id", label: "Submission ID", render: (row) => <span className="cm-primary-cell">{valueOf(row, "id")}</span> },
                             { key: "branch", label: "Branch", render: (row) => valueOf(row, "branch_name", "branch_code", "branch") },
                             { key: "submitted_by", label: "Submitted by", render: (row) => valueOf(row, "submitted_by_name", "submitted_by_username", "submitted_by") },
                             { key: "amount", label: "Expected amount", render: (row) => <strong>{money(row.amount)}</strong> },
@@ -453,6 +485,7 @@ export default function CashManagement() {
                         emptyDetail="Prepared deposits will appear here."
                         columns={[
                             { key: "deposit_number", label: "Deposit", render: (row) => <span className="cm-primary-cell">{valueOf(row, "deposit_number", "id")}</span> },
+                            { key: "deposit_id", label: "Deposit Id", render: (row) => <span className="cm-primary-cell">{valueOf(row, "id")}</span> },
                             { key: "bank_name", label: "Bank", render: (row) => valueOf(row, "bank_name", "bank_reference") },
                             { key: "expected_amount", label: "Expected", render: (row) => <strong>{money(valueOf(row, "expected_amount", "amount"))}</strong> },
                             { key: "deposited_amount", label: "Deposited", render: (row) => money(valueOf(row, "deposited_amount", "expected_amount")) },

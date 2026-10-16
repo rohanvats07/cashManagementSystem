@@ -1,9 +1,19 @@
 import api from "./client";
 
 function listFromResponse(data) {
+    // Support standard DRF lists, pagination, and common API response wrappers.
     if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.results)) return data.results;
-    if (Array.isArray(data?.data)) return data.data;
+    if (!data || typeof data !== "object") return [];
+
+    for (const key of ["results", "data", "items", "loans", "records"]) {
+        const value = data[key];
+        if (Array.isArray(value)) return value;
+        if (value && typeof value === "object") {
+            const nested = listFromResponse(value);
+            if (nested.length) return nested;
+        }
+    }
+
     return [];
 }
 
@@ -45,10 +55,23 @@ export async function createCashSubmission(collectionIds) {
 }
 
 export async function reviewCashSubmission(id, decision, reviewNotes = "") {
-    const { data } = await api.post(`/cash-submissions/${id}/review/`, {
-        decision,
-        review_notes: reviewNotes,
-    });
+    const normalizedDecision = {
+        accept: "ACCEPTED",
+        reject: "REJECTED",
+    }[decision];
+
+    if (!normalizedDecision) {
+        throw new Error(`Invalid review decision: ${decision}`);
+    }
+
+    const { data } = await api.post(
+        `/cash-submissions/${id}/review/`,
+        {
+            decision: normalizedDecision,
+            review_notes: reviewNotes,
+        }
+    );
+
     return data;
 }
 
