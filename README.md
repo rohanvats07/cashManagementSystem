@@ -77,16 +77,11 @@ Django REST Framework backend
 PostgreSQL database
 ```
 
-Business rules, authorization, validation, and financial calculations must be enforced on the backend, not trusted to browser-side code.
-
 ## Roles
 
 - **ADMIN** — administrative access across branches; can perform company-account reconciliation.
 - **COLLECTION_AGENT** — records repayments and submits their own collected cash.
-- **BRANCH_MANAGER** — reviews submissions and manages deposits for their assigned branch.
-- **AUDITOR** — read-oriented visibility into permitted records.
-
-Verify exact permissions using separate demo accounts. Do not use real customer or employee accounts for a public demo.
+- **ADMIN / BRANCH_MANAGER** — reviews submissions and manages deposits for their assigned branch.
 
 ## Workflow
 
@@ -124,11 +119,9 @@ Local backend base URL: `http://localhost:8000`; API prefix: `/api`.
 | `POST` | `/api/bank-deposits/{id}/mark-deposited/` | Record bank deposit details |
 | `POST` | `/api/bank-deposits/{id}/reconcile/` | Reconcile a deposit against a statement credit |
 
-Confirm exact request/response schemas in the running API docs; permissions and validation apply to each endpoint.
-
 ### Frontend request payloads
 
-These are the payloads expected by the frontend integration. Verify them against the current backend serializers before deployment:
+Payloads expected by the frontend integration.
 
 - Create collection: `loan`, `amount`, `idempotency_key`, `notes`
 - Create cash submission: `collection_ids`
@@ -154,8 +147,6 @@ Main domain entities include:
 - **BankDepositItem** — submissions included in a deposit.
 - **BankReconciliation** — statement credit, outcome, notes, and reviewer.
 
-Monetary values must use `DecimalField`/PostgreSQL numeric types and decimal arithmetic. Do not use binary floating-point arithmetic for financial calculations.
-
 ## Local setup
 
 ### Prerequisites
@@ -165,7 +156,7 @@ Install Python (compatible with backend dependencies), Node.js/npm, PostgreSQL, 
 ### 1. Clone the repository
 
 ```powershell
-git clone <YOUR_GITHUB_REPOSITORY_URL>
+git clone <GITHUB_REPOSITORY_URL>
 cd cashManagementSystem
 ```
 
@@ -200,8 +191,6 @@ CREATE USER cmrs_app WITH PASSWORD 'REPLACE_WITH_A_LOCAL_PASSWORD';
 GRANT ALL PRIVILEGES ON DATABASE cmrs_db TO cmrs_app;
 ```
 
-Depending on PostgreSQL version and ownership/schema permissions, additional privileges on the `public` schema may be required. Never commit the real password.
-
 ### 3. Set up backend
 
 In PowerShell:
@@ -219,15 +208,7 @@ Install dependencies from the repository's dependency file, if present:
 pip install -r requirements.txt
 ```
 
-Create `backend/.env` using the variable names actually read by `backend/config/settings.py`. At minimum, production/local configuration commonly includes a Django secret, debug flag, allowed hosts, and PostgreSQL connection settings. Example only:
-
-```dotenv
-SECRET_KEY=replace_with_a_long_random_secret
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
-```
-
-Do not blindly add environment variable names that the settings module does not read. If settings use individual database variables, configure those; if they use `DATABASE_URL`, configure that instead. Keep `.env` out of Git.
+Create `backend/.env` using the `.env.example`
 
 ### 4. Apply migrations and create users
 
@@ -238,14 +219,6 @@ python manage.py check
 python manage.py migrate
 python manage.py createsuperuser
 ```
-
-If tests are included, run:
-
-```powershell
-python manage.py test
-```
-
-Use the user-management API or Django admin to create separate demo users with appropriate roles and branch assignments.
 
 ### 5. Run backend
 
@@ -280,13 +253,6 @@ npm run dev
 
 Open the URL printed by Vite, normally `http://localhost:5173`.
 
-Before deploying, run a production build and fix all errors:
-
-```powershell
-npm run build
-```
-
-A successful local development session does not guarantee a successful production build.
 
 ## Environment variables
 
@@ -295,8 +261,6 @@ A successful local development session does not guarantee a successful productio
 | Variable | Purpose | Local example |
 |---|---|---|
 | `VITE_API_BASE_URL` | Backend API base URL | `http://localhost:8000/api` |
-
-Any `VITE_` variable is bundled into client-side code. Never put secrets, database credentials, or private API keys in frontend environment variables.
 
 ### Backend
 
@@ -309,8 +273,6 @@ Configure variables that the actual `backend/config/settings.py` reads. Common p
 | `ALLOWED_HOSTS` | Permitted backend hostnames |
 | `DATABASE_URL` or database-specific variables | PostgreSQL connection |
 | `CORS_ALLOWED_ORIGINS` | Trusted frontend origins, if configured in settings |
-
-This list is a deployment checklist, not a guarantee that every variable is currently wired into the project. Confirm settings before deployment. Keep secrets out of GitHub and rotate any secret accidentally committed.
 
 ## API documentation
 
