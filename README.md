@@ -6,9 +6,9 @@ A full-stack application for managing loan repayments collected in cash and trac
 
 The application uses React/Vite, Django REST Framework, PostgreSQL, REST APIs, JWT authentication, and role-based access control (RBAC).
 
-[Hosted Application](https://cash-management-system-rosy.vercel.app/)
-[Dashboard](https://cash-management-system-rosy.vercel.app/)
-[Login Page](https://cash-management-system-rosy.vercel.app/login)
+- [Hosted Application](https://cash-management-system-rosy.vercel.app/)
+- [Dashboard](https://cash-management-system-rosy.vercel.app/)
+- [Login Page](https://cash-management-system-rosy.vercel.app/login)
 
 
 ## Contents
