@@ -413,6 +413,7 @@ export default function CashManagement() {
                         emptyDetail="Collection records will appear here once they are created."
                         columns={[
                             { key: "receipt_number", label: "Receipt", render: (row) => <span className="cm-primary-cell">{valueOf(row, "receipt_number", "id")}</span> },
+                            { key: "collection_id", label: "collection id", render: (row) => <span className="cm-primary-cell">{valueOf(row, "id")}</span> },
                             { key: "customer", label: "Customer / loan", render: (row) => <div className="cm-cell-stack"><strong>{valueOf(row, "customer_name", "customer", "loan_number", "loan")}</strong><span>Loan {valueOf(row, "loan_number", "loan_id", "loan")}</span></div> },
                             { key: "amount", label: "Amount", render: (row) => <strong>{money(row.amount)}</strong> },
                             { key: "collection_date", label: "Date", render: (row) => displayDate(valueOf(row, "collection_date", "created_at")) },
